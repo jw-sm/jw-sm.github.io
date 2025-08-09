@@ -1,32 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Race Condition Writeup</title>
+    <title>Race Condition Exploit</title>
+    <meta charset="UTF-8">
     <style>
-        body { 
+        body {
+            background: #FFF;
+            color: #000;
             font-family: 'Courier New', monospace;
+            font-size: 13px;
             max-width: 80ch;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 1rem;
             line-height: 1.3;
         }
-        pre { white-space: pre-wrap; }
+        pre {
+            white-space: pre-wrap;
+            margin: 0;
+        }
+        a {
+            color: #000;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 <pre>
+-----------------------------------------------------------------
 [ Exploiting Race Condition at ProductBoard ]
 2023-08-14 • jw-sm
 -----------------------------------------------------------------
 
-1. Vulnerability Discovery
--------------------------
-Discovered during routine API testing...
+1. Overview
+-----------
+Discovered race condition in ProjectBoard's API during
+automated testing. Vulnerability allowed privilege
+escalation via concurrent requests to /api/v1/permissions.
 
-2. Technical Analysis
+2. Technical Details
 --------------------
-The race condition occurs when...
+Vulnerable endpoint:
+POST /api/v1/permissions
+  Params: {"project_id":123,"user_level":"admin"}
 
+Race window: ~200ms between:
+  - Permission check (GET)
+  - Privilege assignment (POST)
+
+3. Exploit Flow
+---------------
+[Thread A]                     [Thread B]
+GET /permissions → 403         |
+                               | POST /permissions → 200
+Delay 150ms                    |
+POST /permissions → 200        |
+
+4. Mitigation
+-------------
+• Implement Redis lock (project_id as key)
+• Atomic check-and-set operation
+• Added server-side request timestamp validation
+
+-----------------------------------------------------------------
 [ Back to Portfolio ](../index.html)
 </pre>
 </body>
