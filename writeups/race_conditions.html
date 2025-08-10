@@ -31,14 +31,81 @@
 <pre>
 -----------------------------------------------------------------
 [ Exploiting Race Condition at ProductBoard ]
-2023-08-14 • jw-sm
+03-2025• jw-sm
 -----------------------------------------------------------------
 
 1. Overview
 -----------
-Discovered race condition in ProjectBoard's API during
-automated testing. Vulnerability allowed privilege
-escalation via concurrent requests to /api/v1/permissions.
+Over the years, most of the race condition attacks are bruteforcing
+the security placed by the backend developers (limit overrun race conditions).
+
+I've read a ton of race condition white papers, and got a lot of techniques
+on specially single-packet attack if a the server supports HTTP/2.
+
+All web application (yes, literally everything) go through a "sub-state". It's
+a short-lived state that an application go through while processing a single request,
+and then proceed to exit once the request is done. It's called the "race window" - 
+often around 1-3ms (0.001ms). 
+
+To reach a sub-state, an initial HTTP request is needed to trigger a transition to
+sub-state, and a second request that interacts with the same resource during the
+sub-state or race window.
+
+Here's the problem. Due to network latency, jitter, and backend latency,
+it's almost impossible to detect race condition as the race window has a very
+small window (often around 1-2ms), and it will be very hard to replicate
+(I found a study where it took 20-hours of constantly sending request in parallel
+before race condition has been found.)
+
+Here's visual of how these 3 network-related delays are affecting
+the effectivenes of race condition.
+
+network latency = "====="
+jitter          = "|||||"
+latency         = "-----"
+race window     = "?????"
+                                              race window 
+                TIME ----->                       |
+            network latency | jitter | latency |  v
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Request 1  =================||||||||||----------?????  =
+Request 2  =================|||-------------?????      = 
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+[note]
+As you can see in the ascii illustration above, both request
+has to line up the race window before the attack to work, which was fucking
+impossible due to the 3 network issues i've listed above.
+[end of note]
+
+All web applications live on a different server, requests are sent from
+different location, and tons of other variables that changes, making it impossible
+to find race condition vulnerabilities consistently.
+
+But that's after I've found a white paper published at BlackHat USA and DefCon.
+The solution was implemented using single-packet attack.
+
+This technique can make 10-30 requests arrive at the server simultaneously
+regardless of the networ jitter. (I KNOW IT'S FUCKING CRAZY THIS WILL MAKE THINGS HOTBED 
+FOR RACE CONDITION ATTACKS).
+
+Single-packet attack is 3-10 times more effective compared to last-byte sync.
+This is only possible with HTTP/2 because it allows requests to be sent over a single connection
+concurrently, and that's probably due to optimization and making HTTP/2 more efficient but the consequence
+wasn't carefully analyzed.
+
+Here's the link to the paper this novel attack was found:
+https://aaltodoc.aalto.fi/server/api/core/bitstreams/1d5e4107-3b9e-4926-8735-dcc45633c673/content
+For the technical details of the attack and implementation, visit the link. Trust me, it's worth reading.
+
+2. ProductBoard Race Condition
+---------------------------
+Upon getting an account to test ProductBoard (shoutout to ya'll!), I've played and used
+the web application to understand what it does, why it does that, how it does its thing, etc.
+That's how most manual penetration testers do (It's signicantly better than automated testing.
+Source: trust me bro).
+
+## TODO CONTINUE THIS WHITE PAPER
 
 2. Technical Details
 --------------------
