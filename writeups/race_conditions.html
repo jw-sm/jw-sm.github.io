@@ -15,7 +15,7 @@
             line-height: 1.3;
         }
         pre {
-            white-space: pre-wrap;
+            white-space: pre;
             margin: 0;
         }
         a {
@@ -24,20 +24,6 @@
         }
         a:hover {
             text-decoration: underline;
-        }
-        .header, .section {
-            border-bottom: 1px solid #000;
-            margin: 1.5rem 0 0.5rem 0;
-        }
-        .note {
-            background: #f0f0f0;
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            border-left: 3px solid #ccc;
-        }
-        .diagram {
-            margin: 1rem 0;
-            text-align: center;
         }
     </style>
 </head>
@@ -48,7 +34,16 @@
 03-2025 • jw-sm
 -----------------------------------------------------------------
 
-<span class="header">1. OVERVIEW</span>
+Table of Contents
+-----------------
+  1. Overview.................................[1]
+  2. ProductBoard Implementation..............[2]
+  3. Technical Details........................[3]
+  4. Exploit Flow.............................[4]
+  5. Mitigation...............................[5]
+-----------------------------------------------------------------
+
+[1] OVERVIEW
 Race condition attacks typically brute-force backend security limits.
 After studying numerous white papers, I discovered advanced techniques
 for single-packet attacks (HTTP/2 required).
@@ -59,14 +54,13 @@ during request processing. Exploiting this requires:
 1. Initial request to trigger sub-state
 2. Second request interacting during the race window
 
-<span class="note">[ NETWORK CHALLENGES ]
+[ NETWORK CHALLENGES ]
 network latency = "====="
 jitter          = "|||||"
 latency         = "-----"
 race window     = "?????"
 
                 TIME ----->                     race window 
-                                                  |
             network latency | jitter | latency |   v
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Request 1  =================||||||||||----------?????  =
@@ -74,7 +68,7 @@ Request 2  =================|||-------------?????      =
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Traditional methods require perfect timing alignment, made nearly
-impossible by network variables.</span>
+impossible by network variables.
 
 The breakthrough came from BlackHat/DefCon research on single-packet
 attacks (3-10x more effective than last-byte sync). HTTP/2's multiplexing
@@ -82,11 +76,11 @@ enables concurrent requests over one connection.
 
 Reference: https://aaltodoc.aalto.fi/server/api/core/bitstreams/1d5e4107-3b9e-4926-8735-dcc45633c673/content
 
-<span class="header">2. PRODUCTBOARD IMPLEMENTATION</span>
+[2] PRODUCTBOARD IMPLEMENTATION
 After manual testing (superior to automated scans - trust me bro),
 I identified:
 
-<span class="header">3. TECHNICAL DETAILS</span>
+[3] TECHNICAL DETAILS
 Vulnerable endpoint:
 POST /api/v1/permissions
 Params: {"project_id":123,"user_level":"admin"}
@@ -95,14 +89,14 @@ Race window: ~200ms between:
 • Permission check (GET)
 • Privilege assignment (POST)
 
-<span class="header">4. EXPLOIT FLOW</span>
+[4] EXPLOIT FLOW
 [Thread A]                     [Thread B]
 GET /permissions → 403         |
                                | POST /permissions → 200
 Delay 150ms                    |
 POST /permissions → 200        |
 
-<span class="header">5. MITIGATION</span>
+[5] MITIGATION
 • Redis lock (project_id as key)
 • Atomic check-and-set
 • Server-side timestamp validation
@@ -112,3 +106,4 @@ POST /permissions → 200        |
 </pre>
 </body>
 </html>
+
