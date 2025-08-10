@@ -14,9 +14,17 @@
             padding: 1rem;
             line-height: 1.3;
         }
+        .pre-container {
+            text-align: center; /* center the inline-block pre */
+        }
         pre {
-            white-space: pre;
+            display: inline-block; /* shrink wrap */
+            text-align: left;      /* keep lines left aligned inside pre */
+            white-space: pre-wrap; /* preserve line breaks, but allow wrapping */
+            word-wrap: break-word; /* break long words */
+            overflow-wrap: anywhere; /* break anywhere if needed */
             margin: 0;
+            max-width: 80ch; /* optional: limit width inside container */
         }
         a {
             color: #000;
@@ -28,6 +36,7 @@
     </style>
 </head>
 <body>
+<div class="pre-container">
 <pre>
 -----------------------------------------------------------------
 [ Exploiting Race Condition at ProductBoard ]
@@ -103,6 +112,7 @@ leading to full account takeover, including unauthorized access to sensitive fun
 -----------------------------------------------------------------
 [ <a href="../index.html">Back to Portfolio</a> ]
 </pre>
+</div>
 </body>
 </html>
 
