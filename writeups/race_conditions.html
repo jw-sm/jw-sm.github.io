@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Race Condition Exploit</title>
+    <title>Race Condition Exploit at ProductBoard</title>
     <meta charset="UTF-8">
     <style>
         body {
@@ -25,114 +25,90 @@
         a:hover {
             text-decoration: underline;
         }
+        .header, .section {
+            border-bottom: 1px solid #000;
+            margin: 1.5rem 0 0.5rem 0;
+        }
+        .note {
+            background: #f0f0f0;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid #ccc;
+        }
+        .diagram {
+            margin: 1rem 0;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 <pre>
 -----------------------------------------------------------------
 [ Exploiting Race Condition at ProductBoard ]
-03-2025• jw-sm
+03-2025 • jw-sm
 -----------------------------------------------------------------
 
-1. Overview
------------
-Over the years, most of the race condition attacks are bruteforcing
-the security placed by the backend developers (limit overrun race conditions).
+<span class="header">1. OVERVIEW</span>
+Race condition attacks typically brute-force backend security limits.
+After studying numerous white papers, I discovered advanced techniques
+for single-packet attacks (HTTP/2 required).
 
-I've read a ton of race condition white papers, and got a lot of techniques
-on specially single-packet attack if a the server supports HTTP/2.
+All web applications transition through a "sub-state" (1-3ms window)
+during request processing. Exploiting this requires:
 
-All web application (yes, literally everything) go through a "sub-state". It's
-a short-lived state that an application go through while processing a single request,
-and then proceed to exit once the request is done. It's called the "race window" - 
-often around 1-3ms (0.001ms). 
+1. Initial request to trigger sub-state
+2. Second request interacting during the race window
 
-To reach a sub-state, an initial HTTP request is needed to trigger a transition to
-sub-state, and a second request that interacts with the same resource during the
-sub-state or race window.
-
-Here's the problem. Due to network latency, jitter, and backend latency,
-it's almost impossible to detect race condition as the race window has a very
-small window (often around 1-2ms), and it will be very hard to replicate
-(I found a study where it took 20-hours of constantly sending request in parallel
-before race condition has been found.)
-
-Here's visual of how these 3 network-related delays are affecting
-the effectivenes of race condition.
-
+<span class="note">[ NETWORK CHALLENGES ]
 network latency = "====="
 jitter          = "|||||"
 latency         = "-----"
 race window     = "?????"
-                                              race window 
-                TIME ----->                       |
-            network latency | jitter | latency |  v
+
+                TIME ----->                     race window 
+                                                  |
+            network latency | jitter | latency |   v
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Request 1  =================||||||||||----------?????  =
 Request 2  =================|||-------------?????      = 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-[note]
-As you can see in the ascii illustration above, both request
-has to line up the race window before the attack to work, which was fucking
-impossible due to the 3 network issues i've listed above.
-[end of note]
+Traditional methods require perfect timing alignment, made nearly
+impossible by network variables.</span>
 
-All web applications live on a different server, requests are sent from
-different location, and tons of other variables that changes, making it impossible
-to find race condition vulnerabilities consistently.
+The breakthrough came from BlackHat/DefCon research on single-packet
+attacks (3-10x more effective than last-byte sync). HTTP/2's multiplexing
+enables concurrent requests over one connection.
 
-But that's after I've found a white paper published at BlackHat USA and DefCon.
-The solution was implemented using single-packet attack.
+Reference: https://aaltodoc.aalto.fi/server/api/core/bitstreams/1d5e4107-3b9e-4926-8735-dcc45633c673/content
 
-This technique can make 10-30 requests arrive at the server simultaneously
-regardless of the networ jitter. (I KNOW IT'S FUCKING CRAZY THIS WILL MAKE THINGS HOTBED 
-FOR RACE CONDITION ATTACKS).
+<span class="header">2. PRODUCTBOARD IMPLEMENTATION</span>
+After manual testing (superior to automated scans - trust me bro),
+I identified:
 
-Single-packet attack is 3-10 times more effective compared to last-byte sync.
-This is only possible with HTTP/2 because it allows requests to be sent over a single connection
-concurrently, and that's probably due to optimization and making HTTP/2 more efficient but the consequence
-wasn't carefully analyzed.
-
-Here's the link to the paper this novel attack was found:
-https://aaltodoc.aalto.fi/server/api/core/bitstreams/1d5e4107-3b9e-4926-8735-dcc45633c673/content
-For the technical details of the attack and implementation, visit the link. Trust me, it's worth reading.
-
-2. ProductBoard Race Condition
----------------------------
-Upon getting an account to test ProductBoard (shoutout to ya'll!), I've played and used
-the web application to understand what it does, why it does that, how it does its thing, etc.
-That's how most manual penetration testers do (It's signicantly better than automated testing.
-Source: trust me bro).
-
-## TODO CONTINUE THIS WHITE PAPER
-
-2. Technical Details
---------------------
+<span class="header">3. TECHNICAL DETAILS</span>
 Vulnerable endpoint:
 POST /api/v1/permissions
-  Params: {"project_id":123,"user_level":"admin"}
+Params: {"project_id":123,"user_level":"admin"}
 
 Race window: ~200ms between:
-  - Permission check (GET)
-  - Privilege assignment (POST)
+• Permission check (GET)
+• Privilege assignment (POST)
 
-3. Exploit Flow
----------------
+<span class="header">4. EXPLOIT FLOW</span>
 [Thread A]                     [Thread B]
 GET /permissions → 403         |
                                | POST /permissions → 200
 Delay 150ms                    |
 POST /permissions → 200        |
 
-4. Mitigation
--------------
-• Implement Redis lock (project_id as key)
-• Atomic check-and-set operation
-• Added server-side request timestamp validation
+<span class="header">5. MITIGATION</span>
+• Redis lock (project_id as key)
+• Atomic check-and-set
+• Server-side timestamp validation
 
 -----------------------------------------------------------------
-[ Back to Portfolio ](../index.html)
+[ <a href="../index.html">Back to Portfolio</a> ]
 </pre>
 </body>
 </html>
