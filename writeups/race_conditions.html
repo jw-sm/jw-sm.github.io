@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8" />
     <title>Race Condition Exploit at ProductBoard</title>
-    <meta charset="UTF-8">
     <style>
         body {
             background: #FFF;
@@ -36,23 +36,19 @@
 
 Table of Contents
 -----------------
-  1. Overview.................................[1]
-  2. ProductBoard Implementation..............[2]
-  3. Technical Details........................[3]
-  4. Exploit Flow.............................[4]
-  5. Mitigation...............................[5]
+  1. Overview........................................[1]
+  2. Attacking ProductBoard..........................[2]
 -----------------------------------------------------------------
 
 [1] OVERVIEW
-Race condition attacks typically brute-force backend security limits.
-After studying numerous white papers, I discovered advanced techniques
-for single-packet attacks (HTTP/2 required).
+Race condition attacks typically exploit timing gaps to bypass backend security controls.
+After reviewing numerous white papers, I discovered advanced techniques for single-packet attacks (HTTP/2 required).
 
-All web applications transition through a "sub-state" (1-3ms window)
-during request processing. Exploiting this requires:
+All web applications transition through a brief "sub-state" (~1-3ms window) during request processing.
+Exploiting this requires:
 
-1. Initial request to trigger sub-state
-2. Second request interacting during the race window
+1. An initial request to trigger the sub-state
+2. A second request that interacts during the race window
 
 [ NETWORK CHALLENGES ]
 network latency = "====="
@@ -67,39 +63,42 @@ Request 1  =================||||||||||----------?????  =
 Request 2  =================|||-------------?????      = 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Traditional methods require perfect timing alignment, made nearly
-impossible by network variables.
+Traditional methods demand near-perfect timing alignment, which is nearly impossible due to network variability.
 
-The breakthrough came from BlackHat/DefCon research on single-packet
-attacks (3-10x more effective than last-byte sync). HTTP/2's multiplexing
-enables concurrent requests over one connection.
+The breakthrough came from BlackHat/DefCon research on single-packet attacks (3-10x more effective than last-byte sync).
+HTTP/2's multiplexing enables concurrent requests over a single connection.
 
 Reference: https://aaltodoc.aalto.fi/server/api/core/bitstreams/1d5e4107-3b9e-4926-8735-dcc45633c673/content
 
-[2] PRODUCTBOARD IMPLEMENTATION
-After manual testing (superior to automated scans - trust me bro),
-I identified:
+[2] Attacking ProductBoard's Email Verification System
+Methodology:
 
-[3] TECHNICAL DETAILS
-Vulnerable endpoint:
-POST /api/v1/permissions
-Params: {"project_id":123,"user_level":"admin"}
+1. Predicting Potential Collisions
 
-Race window: ~200ms between:
-• Permission check (GET)
-• Privilege assignment (POST)
+I began by identifying security-critical objects to target.
+For each object, I enumerated all endpoints that write to or read from it,
+especially those that impact critical operations.
+A race condition vulnerability requires a ‘collision’ — two concurrent operations on a shared resource.
 
-[4] EXPLOIT FLOW
-[Thread A]                     [Thread B]
-GET /permissions → 403         |
-                               | POST /permissions → 200
-Delay 150ms                    |
-POST /permissions → 200        |
+Due to disclosure constraints, I cannot share full technical details,
+but the vulnerability was found in ProductBoard’s account settings for changing email addresses.
 
-[5] MITIGATION
-• Redis lock (project_id as key)
-• Atomic check-and-set
-• Server-side timestamp validation
+2. Exploiting the Email Verification Mechanism
+
+Using BurpSuite Pro, I intercepted and analyzed the API endpoint responsible for updating the user’s email address.
+The current email on record is redacted@wearehackerone.com.
+
+Leveraging BurpSuite’s single-packet attack feature, I crafted and sent two concurrent HTTP requests to the endpoint,
+each containing a different email parameter. The first request specified an email address under my control,
+while the second contained an arbitrary email address to which I do not have access.
+
+By sending these requests simultaneously, I triggered a race condition in the email verification process.
+As a result, I received a verification email at the controlled address containing a confirmation link
+intended to verify the unauthorized email address.
+
+Upon following the verification link, the system validated the unauthorized email without proper ownership verification.
+This flaw enables an attacker to verify and bind an email address they do not control,
+leading to full account takeover, including unauthorized access to sensitive functions and potential account hijacking.
 
 -----------------------------------------------------------------
 [ <a href="../index.html">Back to Portfolio</a> ]
