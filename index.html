@@ -14,8 +14,8 @@ html, body {
 
 body {
     display: flex;
-    align-items: center;        /* vertical center */
-    justify-content: center;    /* horizontal center */
+    align-items: center;       /* vertical center */
+    justify-content: center;   /* horizontal center */
     background: #fff;
     color: #000;
     font-family: "Courier New", monospace;
@@ -25,7 +25,10 @@ body {
 
 .wrap {
     max-width: 80ch;
-    padding: 2ch;
+    width: 100%;
+    height: 100%;             /* make wrap full height */
+    display: flex;
+    align-items: center;       /* center content vertically */
 }
 
 pre {
