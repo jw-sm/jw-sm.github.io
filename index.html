@@ -3,87 +3,176 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>_</title>
+<title>Del Sanchez</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
+body {
+    font-family: "Lucida Console", monospace;
+    font-size: 18px;
+    color: #111;
+    background-color: white;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 50px;
+    box-sizing: border-box;
 }
 
-body {
+.landing {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #fff;
-    color: #000;
-    font-family: "Courier New", monospace;
-    font-size: 13px;
-    line-height: 1.3;
+    min-height: 100vh;
+    min-height: 100dvh;
+    text-align: center;
 }
 
-.wrap {
-    max-width: 80ch;
+.name {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.role {
+    margin-bottom: 20px;
+}
+
+.links-container a {
+    margin: 0 10px;
+}
+
+.separator {
+    letter-spacing: -6px;
+}
+
+hr {
+    border: none;
+    height: 2px;
+    background-color: lightgrey;
     width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
+    margin: 30px auto;
 }
 
-pre {
-    margin: 0;
-    white-space: pre;
+h2 {
+    margin-top: 0;
 }
 
-a {
-    color: #0000EE;
-    text-decoration: underline;
+.project {
+    margin-bottom: 20px;
 }
 
-a:visited {
-    color: #0000EE;
+.project-year {
+    color: #777;
 }
 
-a:hover {
-    color: #551A8B;
+.certification {
+    margin-bottom: 15px;
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 16px;
+        padding: 0 20px;
+    }
+
+    .links-container a {
+        margin: 0 5px;
+    }
 }
 </style>
 
 </head>
 
 <body>
-<div class="wrap">
 
-<pre>-----------------------------------------------------------------
-[0x00]
-SECURITY • AUTOMATION • BACKEND
------------------------------------------------------------------
-[0x01] PROJECTS
+<div class="landing">
 
-<a href="/projects/n8n.html">AI Operations Automation</a>     .................... [2026]
-<a href="https://github.com/jw-sm/Securix">Securix</a>         .................... [2025]
-<a href="https://github.com/jw-sm/US811">US811</a>            .................... [2025]
+```
+<div class="name">Del Sanchez</div>
 
------------------------------------------------------------------
-[0x02] CERTIFICATIONS
+<div class="role">
+    SECURITY • SYSTEMS • BACKEND
+</div>
 
-2026  <a href="https://credentials.learn.n8n.io/credentials/d2a5195cdf584f3e8579d3f6df355de8/">n8n Professional Certificate</a>
+<div class="links-container">
+    <a href="#projects">projects</a>
+    <span class="separator">|</span>
 
------------------------------------------------------------------
-[0x03] WRITEUPS
+    <a href="#certifications">certifications</a>
+    <span class="separator">|</span>
 
-2025  <a href="/writeups/race_conditions.html">Exploiting Race Condition at ProductBoard</a>
+    <a href="#writeups">writeups</a>
+    <span class="separator">|</span>
 
------------------------------------------------------------------
-[0x04] CONTACT
-
-<a href="mailto:wendellmesia@gmail.com">wendellmesia@gmail.com</a>
-<a href="https://github.com/jw-sm">jw-sm@github</a>
-
------------------------------------------------------------------</pre>
+    <a href="#contact">contact</a>
+</div>
+```
 
 </div>
+
+<hr>
+
+<h2 id="projects">Projects</h2>
+
+<div class="project">
+    <a href="/projects/n8n.html">AI Operations Automation</a>
+    <span class="project-year">[2026]</span>
+    <br>
+    AI-powered workflow automation using n8n, LLMs, Gmail, Supabase, and HubSpot.
+</div>
+
+<div class="project">
+    <a href="https://github.com/jw-sm/Securix">Securix</a>
+    <span class="project-year">[2025]</span>
+</div>
+
+<div class="project">
+    <a href="https://github.com/jw-sm/US811">US811</a>
+    <span class="project-year">[2025]</span>
+</div>
+
+<hr>
+
+<h2 id="certifications">Certifications</h2>
+
+<div class="certification">
+    2026 —
+    <a href="https://credentials.learn.n8n.io/credentials/d2a5195cdf584f3e8579d3f6df355de8/">
+        n8n Professional Certificate
+    </a>
+</div>
+
+<hr>
+
+<h2 id="writeups">Writeups</h2>
+
+<div class="project">
+    2025 —
+    <a href="/writeups/race_conditions.html">
+        Exploiting Race Condition at ProductBoard
+    </a>
+</div>
+
+<hr>
+
+<h2 id="contact">Contact</h2>
+
+<p>
+    <a href="mailto:wendellmesia@gmail.com">
+        wendellmesia@gmail.com
+    </a>
+    <br>
+
+```
+<a href="https://github.com/jw-sm">
+    jw-sm@github
+</a>
+```
+
+</p>
+
+<hr>
+
 </body>
 </html>
