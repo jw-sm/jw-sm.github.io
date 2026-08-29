@@ -39,6 +39,11 @@ h2 {
     font-size: 22px;
 }
 
+h3 {
+    font-size: 19px;
+    margin-top: 30px;
+}
+
 img {
     display: block;
     width: 100%;
@@ -91,8 +96,6 @@ p {
 
 <h2>Main Workflow</h2>
 
-<!-- Replace this with your screenshot -->
-
 <img
 src="../images/main-workflow.png"
 alt="Main n8n workflow architecture"
@@ -105,10 +108,67 @@ alt="Main n8n workflow architecture"
     to specialized subworkflows based on the request type.
 </p>
 
+<hr>
+
+<h2>Subworkflows</h2>
+
 <p>
-    The workflow is divided into reusable components rather than placing
-    all business logic in a single workflow. This keeps individual processes
-    isolated and easier to maintain.
+    The main workflow delegates specific operations to reusable subworkflows.
+    This keeps business logic separated and allows common operations to be
+    reused across multiple request paths.
+</p>
+
+<h3>General Inquiry Subworkflow/h3>
+
+<img
+src="../images/inquiry.png"
+alt="Contact management subworkflow"
+
+>
+
+<p>
+    Handles incoming requests for information about utility tickets and related field data. The subworkflow receives structured information extracted from the original email, validates the available details, retrieves the corresponding record from the database, and uses the retrieved data to generate a contextual response.
+The workflow is designed to handle incomplete or ambiguous requests without relying on fabricated information. When sufficient information is available, it retrieves the relevant ticket or pole details and provides the requested information back to the contact. Contact information is also handled through a reusable contact-management component, allowing the same functionality to be shared across other request paths.
+By separating the inquiry logic from the main workflow, the process can be maintained independently and reused whenever a request is classified as a general inquiry.
+</p>
+
+<h3>General Inquiry</h3>
+
+<img
+src="../images/subworkflow-general-inquiry.png"
+alt="General inquiry subworkflow"
+
+>
+
+<p>
+    Processes general information requests, retrieves the required data,
+    and generates an appropriate response.
+</p>
+
+<h3>Correction Request</h3>
+
+<img
+src="../images/subworkflow-correction.png"
+alt="Correction request subworkflow"
+
+>
+
+<p>
+    Handles correction requests by validating the submitted information,
+    retrieving the relevant record, and processing the requested changes.
+</p>
+
+<h3>Safety Concern</h3>
+
+<img
+src="../images/subworkflow-safety.png"
+alt="Safety concern subworkflow"
+
+>
+
+<p>
+    Handles safety-related requests and routes them through the appropriate
+    process for review and response.
 </p>
 
 <hr>
@@ -144,3 +204,4 @@ alt="Main n8n workflow architecture"
 
 </body>
 </html>
+
