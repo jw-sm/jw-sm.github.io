@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Operations Automation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+    font-family: "Lucida Console", monospace;
+    font-size: 18px;
+    color: #111;
+    background-color: white;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 50px;
+    box-sizing: border-box;
+}
+
+a {
+    color: #0000EE;
+}
+
+hr {
+    border: none;
+    height: 2px;
+    background-color: lightgrey;
+    width: 100%;
+    margin: 30px auto;
+}
+
+h1 {
+    font-size: 28px;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 22px;
+}
+
+img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 25px 0;
+}
+
+p {
+    line-height: 1.6;
+}
+
+.meta {
+    color: #666;
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 16px;
+        padding: 25px 20px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<a href="/">← home</a>
+
+<hr>
+
+<h1>AI Operations Automation</h1>
+
+<p class="meta">
+    n8n · AI/LLM · Gmail · HubSpot · Supabase
+</p>
+
+<p>
+    An AI-powered operations automation system for processing incoming
+    utility-related emails. The workflow classifies requests, extracts
+    relevant information, routes them to the appropriate process, and
+    interacts with connected systems.
+</p>
+
+<hr>
+
+<h2>Main Workflow</h2>
+
+<!-- Replace this with your screenshot -->
+
+<img
+src="../images/main-workflow.png"
+alt="Main n8n workflow architecture"
+
+>
+
+<p>
+    The main workflow acts as the entry point for incoming requests. It
+    receives emails, uses AI to classify the request, and routes execution
+    to specialized subworkflows based on the request type.
+</p>
+
+<p>
+    The workflow is divided into reusable components rather than placing
+    all business logic in a single workflow. This keeps individual processes
+    isolated and easier to maintain.
+</p>
+
+<hr>
+
+<h2>Architecture</h2>
+
+<p>
+    Incoming Email
+    → AI Classification
+    → Request Routing
+    → Specialized Subworkflow
+    → CRM / Database / Response
+</p>
+
+<hr>
+
+<h2>What it demonstrates</h2>
+
+<ul>
+    <li>AI-assisted request classification</li>
+    <li>Structured information extraction</li>
+    <li>Reusable n8n subworkflows</li>
+    <li>API and third-party service integration</li>
+    <li>Workflow routing and conditional logic</li>
+    <li>Error-aware automation design</li>
+</ul>
+
+<hr>
+
+<p>
+    <a href="/">← back to home</a>
+</p>
+
+</body>
+</html>
