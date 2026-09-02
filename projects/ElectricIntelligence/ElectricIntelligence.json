@@ -1,0 +1,912 @@
+{
+  "name": "Main Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://api.fergus.com/jobs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jobno",
+              "value": "={{ $json.output.job_reference }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        -128
+      ],
+      "id": "0702dd5f-6423-4947-91fd-54bb3e292859",
+      "name": "Get Fergus Job",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Eh65AQrLj7umF3FU",
+          "name": "Fergus"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.fergus.com/jobs/' + $json.data[0].id + '/quotes/' + $json.data[0].activeQuote.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1472,
+        -128
+      ],
+      "id": "e4afcb69-bdf7-4f72-9cc5-ffcfa990d3a5",
+      "name": "Get Quote Details",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Eh65AQrLj7umF3FU",
+          "name": "Fergus"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all();\n\n// get the first incoming item's JSON\nconst quote = input[0].json.data;\n\n// find the Materials section\nconst materialsSection = quote.sections.find(\n  section => section.name.toLowerCase() === 'materials'\n);\n\nif (!materialsSection) {\n  throw new Error('Materials section not found in Fergus quote');\n}\n\n// Extract each material\nconst materials = materialsSection.lineItems.map(item => ({\n  name: item.itemName,\n  quantity: Number(item.itemQuantity),\n  unit: item.unitOfMeasureSell,\n  estimatedUnitCost: Number(item.itemCost),\n  estimatedTotalCost:\n    Number(item.itemQuantity) * Number(item.itemCost),\n}));\n\n// calculate total estimated material cost\n// this assumes that each estimatedTotalCost is number\n// else this should return NaN (have to verify later)\nconst estimatedMaterialCost = materials.reduce(\n  (sum, item) => sum + item.estimatedTotalCost,\n  0\n);\n\nreturn [{\n  json: {\n    jobId: quote.jobId,\n    jobNo: quote.jobNo,\n    quoteId: quote.id,\n    quoteTitle: quote.title,\n    estimatedMaterialCost,\n    materials\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -128
+      ],
+      "id": "bfe6d394-113a-4197-9e36-97a83aaa595d",
+      "name": "Extract Fergus Material Estimate"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_5183160255028782281"
+          ],
+          "readStatus": "both"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        -32
+      ],
+      "id": "4aacebd4-3b53-406e-91a7-3938f5a626f4",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZXE9X6Gw9OMIF2RX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "df99050a-1d6e-4e5f-9748-fe47b3f658a4",
+              "leftValue": "={{ $('Gmail Trigger').item.binary }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        -32
+      ],
+      "id": "342e3f16-c384-4879-9ff3-8223f5b09ec0",
+      "name": "Attachment Exists?"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        192
+      ],
+      "id": "24d8eb2c-c390-4ef6-8ab6-fd654c779e00",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yQbof3ZQgszjnpt3",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "aafc541d-4531-48e6-9339-438775c1ab99",
+              "leftValue": "={{ $json.output.job_reference }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -32
+      ],
+      "id": "5517009e-164b-4ce8-847b-bb01f46d75b7",
+      "name": "Job Reference Exists?"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $input.item.binary.attachment_0 }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        -32
+      ],
+      "id": "17c22fe7-de64-4365-bb01-d46ce39097d6",
+      "name": "PDF To Text Extraction"
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoice = $('AI Invoice Extractor').first().json;\nconst fergus = $input.first().json;\n\nconst invoiceItemsList = invoice.output.materials.map((item, i) => \n  `${i}: ${item.description} (qty: ${item.qty} ${item.unit}, unit price: $${item.unit_price})`\n).join('\\n');\n\nconst fergusItemsList = fergus.materials.map((item, i) => \n  `${i}: ${item.name} (qty: ${item.quantity} ${item.unit || 'unit'}, est. unit cost: $${item.estimatedUnitCost})`\n).join('\\n');\n\nreturn [{\n  json: {\n    invoice,\n    fergus,\n    invoice_items_list: invoiceItemsList,\n    fergus_items_list: fergusItemsList\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -128
+      ],
+      "id": "3ba10bd0-78ec-4554-baf4-6bdc6e6d98b1",
+      "name": "Prepare Comparison Data"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"invoice_number\": \"ESA-INV-2026-08421\",\n  \"invoice_date\": \"28 August 2026\",\n  \"due_date\": \"27 September 2026\",\n  \"currency\": \"AUD\",\n  \"supplier_name\": \"ELECTROSUPPLY AUSTRALIA PTY LTD\",\n  \"supplier_abn\": \"82 614 927 351\",\n  \"bill_to_name\": \"Your Electrical Company Pty Ltd\",\n  \"job_reference\": \"JOB-5\",\n  \"project\": \"Lot 42 – New Home Electrical Installation – Riverside Estate\",\n  \"subtotal\": 12573.00,\n  \"gst\": 1257.30,\n  \"total_due\": 13830.30,\n  \"materials\": [\n    {\n      \"description\": \"Main Switchboard & Components\",\n      \"qty\": 1,\n      \"unit\": \"each\",\n      \"unit_price\": 2650.00,\n      \"amount\": 2650.00\n    }\n  ]\n}",
+        "options": {
+          "systemPromptTemplate": "Extract the invoice fields exactly as they appear in the text. Do not calculate, infer, or correct any values — only extract what is explicitly written. If a field is not present in the text, return null for it."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -32
+      ],
+      "id": "7ef4e4f2-faee-4541-b02d-385e2b38f093",
+      "name": "AI Invoice Extractor"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        96
+      ],
+      "id": "37387f6c-3f99-4af8-a867-b4a9aa3bbb0e",
+      "name": "Gemini 3.7 Flash",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yQbof3ZQgszjnpt3",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"matches\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"invoiceItemIndex\": { \"type\": \"integer\" },\n          \"fergusItemIndex\": { \"type\": \"integer\" },\n          \"confidence\": { \"type\": \"number\" }\n        },\n        \"required\": [\"invoiceItemIndex\", \"fergusItemIndex\", \"confidence\"]\n      }\n    },\n    \"unmatchedInvoiceItems\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"integer\" }\n    },\n    \"unmatchedFergusItems\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"integer\" }\n    }\n  },\n  \"required\": [\"matches\", \"unmatchedInvoiceItems\", \"unmatchedFergusItems\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2288,
+        96
+      ],
+      "id": "b96b2f3e-00f4-4182-a7e9-6fe9be27c164",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Invoice items:\n{{ $json.invoice_items_list }}\n\nFergus items:\n{{ $json.fergus_items_list }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are matching electrical trade materials between an invoice and a job costing system (Fergus). The same physical item is often described differently — abbreviations, brand names, wording variations, or slightly different units (e.g. \"T&E Cable\" = \"Twin & Earth Cable\", \"GPO\" = \"Power Point\", \"10W LED Downlight\" = \"LED Downlights\"). Match based on what the item physically is, not exact text.\n\nMatch each invoice item to the single best corresponding Fergus item where you are reasonably confident they refer to the same physical material. Quantity and price similarity can support a match but the description meaning is primary. If an item has no reasonable counterpart in the other list, leave it unmatched — do not force a low-quality match."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2144,
+        -128
+      ],
+      "id": "cb8135d1-7035-444c-98a3-ecdf6ac2b7a4",
+      "name": "AI - Match Invoice Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { matches, unmatchedInvoiceItems, unmatchedFergusItems } = $input.first().json.output;\n\nconst lowConfidenceMatches = matches.filter(m => m.confidence < 0.75);\n\nreturn [{\n  json: {\n    ...$input.first().json.output,\n    lowConfidenceMatches,\n    needsReview: lowConfidenceMatches.length > 0 \n      || unmatchedInvoiceItems.length > 0 \n      || unmatchedFergusItems.length > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2496,
+        -128
+      ],
+      "id": "2fa5c7ca-9a90-491b-87ca-91f9b150ce70",
+      "name": "Validate Confidence Level"
+    },
+    {
+      "parameters": {
+        "jsCode": "const matchData = $input.first().json; // matches, unmatchedInvoiceItems, etc.\nconst merged = $('Prepare Comparison Data').first().json; // merged data\n\nconst invoiceMaterials = merged.invoice.output.materials;\nconst fergusMaterials = merged.fergus.materials;\n\nconst variances = matchData.matches.map(m => {\n  const invItem = invoiceMaterials[m.invoiceItemIndex];\n  const fergusItem = fergusMaterials[m.fergusItemIndex];\n\n  const actualTotal = invItem.amount;\n  const estimatedTotal = fergusItem.estimatedTotalCost;\n  const costVarianceAmount = Math.round((actualTotal - estimatedTotal) * 100) / 100;\n  const costVariancePct = estimatedTotal !== 0 \n    ? Math.round((costVarianceAmount / estimatedTotal) * 1000) / 10 \n    : null;\n\n  const qtyInvoice = invItem.qty;\n  const qtyFergus = fergusItem.quantity;\n  const qtyVarianceAmount = Math.round((qtyInvoice - qtyFergus) * 100) / 100;\n  const qtyVariancePct = qtyFergus !== 0 \n    ? Math.round((qtyVarianceAmount / qtyFergus) * 1000) / 10 \n    : null;\n\n  // unit price variance in isolation — did the per-unit rate itself change,\n  // independent of quantity?\n  const unitPriceVarianceAmount = Math.round((invItem.unit_price - fergusItem.estimatedUnitCost) * 100) / 100;\n  const unitPriceVariancePct = fergusItem.estimatedUnitCost !== 0\n    ? Math.round((unitPriceVarianceAmount / fergusItem.estimatedUnitCost) * 1000) / 10\n    : null;\n\n  return {\n    invoiceDescription: invItem.description,\n    fergusDescription: fergusItem.name,\n    matchConfidence: m.confidence,\n    qtyInvoice,\n    qtyFergus,\n    qtyVarianceAmount,\n    qtyVariancePct,\n    unitPriceInvoice: invItem.unit_price,\n    unitPriceFergus: fergusItem.estimatedUnitCost,\n    unitPriceVarianceAmount,\n    unitPriceVariancePct,\n    actualTotal,\n    estimatedTotal,\n    costVarianceAmount,\n    costVariancePct\n  };\n});\n\nconst totalActual = variances.reduce((s, v) => s + v.actualTotal, 0);\nconst totalEstimated = variances.reduce((s, v) => s + v.estimatedTotal, 0);\nconst totalCostVariance = Math.round((totalActual - totalEstimated) * 100) / 100;\n\nconst totalCostVariancePct = totalEstimated !== 0\n  ? Math.round((totalCostVariance / totalEstimated) * 1000) / 10\n  : null;\n\nconst totalQtyVarianceItems = variances.filter(v => v.qtyVarianceAmount !== 0).length;\n\nreturn [{\n  json: {\n    variances,\n    totalActual: Math.round(totalActual * 100) / 100,\n    totalEstimated: Math.round(totalEstimated * 100) / 100,\n    totalCostVariance,\n    totalCostVariancePct,\n    totalQtyVarianceItems\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        -128
+      ],
+      "id": "ba57bb49-3b10-4fa7-88ac-0c5a7d0e3872",
+      "name": "Calculate Variance"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BU3JXSTMH",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"⚠️ Cost Variance Alert\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Job:*\\n{{ $('Get Fergus Job').item.json.data[0].jobNumber }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Variance:*\\n{{ $('Calculate Variance').item.json.totalCostVariancePct}}%\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Estimated Cost:*\\n${{ $('Calculate Variance').item.json.totalEstimated }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Actual Cost:*\\n${{ $('Calculate Variance').item.json.totalActual }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*What happened?*\\nThe actual supplier cost differs from the Fergus estimate by more than 5%. Please review the job and supplier invoice.\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"🔎 *Variance Details*\\n• Difference: ${{ $('Calculate Variance').item.json.totalCostVariance}}\\n• Variance threshold: 5%\\n• Status: *Requires Review*\"\n      }\n    }\n  ]\n}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        3392,
+        64
+      ],
+      "id": "50f1dd48-a6d6-4958-a737-697e0ad9951a",
+      "name": "⚠️ Cost Variance Alert",
+      "webhookId": "6fb36387-49e2-486c-930c-82218de75107",
+      "credentials": {
+        "slackApi": {
+          "id": "GRRvr3BdTSrJX9oV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const msg = $input.item.json;\n\nconst senderName = msg.from.value[0].name;\nconst senderEmail = msg.from.value[0].address;\nconst sanitizedSender = senderName.replace(/[\\/\\\\:*?\"<>|]/g, '');\nconst dateReceived = msg.date.split('T')[0];\n\nreturn {\n  json: {\n    label: \"invoice\",\n    messageId: msg.id,\n    senderName,\n    senderEmail,\n    sanitizedSender,\n    subject: msg.subject,\n    dateReceived,\n    attachmentCount: Object.keys($input.item.binary || {}).length,\n  },\n  binary: $input.item.binary,\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -336
+      ],
+      "id": "1b5d1ecf-5427-46c0-adc0-941671e9519b",
+      "name": "Get Sender Info"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $('Attachment Exists?').item.binary.attachment_0 }}",
+        "name": "={{ $json.senderName + ' ' + $('Gmail Trigger').item.binary.attachment_0.fileName}}",
+        "driveId": {
+          "__rl": true,
+          "value": "=1wIrRyE79MN4XYhTNeBOlwUXCbXmenbba",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "=1wIrRyE79MN4XYhTNeBOlwUXCbXmenbba",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        736,
+        -336
+      ],
+      "id": "f8262c11-6408-493f-bf6f-086519eeb41b",
+      "name": "Upload Invoice Attachment",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "TuXhHcUhFpIjZxpN",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BU3JXSTMH",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"⚠️ Supplier Invoice Requires Human Review\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*No invoice attachment was detected in this email.*\\n\\nThe automation cannot continue with the invoice processing. A human needs to review the email and determine whether the invoice was omitted.\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*From:*\\n{{ $json.from }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Received:*\\n{{ $json.date }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Subject:*\\n{{ $json.subject }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"🟡 *Status:* Human Review Required\\n\\nPlease check the original email and request the supplier invoice if it was not included.\"\n      }\n    }\n  ]\n}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        256
+      ],
+      "id": "06247e75-0128-4c1f-a251-6f1d32d1453f",
+      "name": "⚠️ No Attachment Included",
+      "webhookId": "6fb36387-49e2-486c-930c-82218de75107",
+      "credentials": {
+        "slackApi": {
+          "id": "GRRvr3BdTSrJX9oV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BU3JXSTMH",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"⚠️ Job Reference Not Found\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*The supplier email does not contain a recognizable job reference number.*\\n\\nThe automation cannot match this invoice to a Fergus job. Human review is required before processing can continue.\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*From:*\\n{{ $('Gmail Trigger').item.json.from.text }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Received:*\\n{{ $('Gmail Trigger').item.json.date.toDateTime()}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Subject:*\\n{{ $('Gmail Trigger').item.json.subject }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Job Reference:*\\n❌ Not Found\"\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"🟡 *Status:* Human Review Required\\n\\nPlease review the email and identify the correct Fergus job reference number before continuing the invoice processing.\"\n      }\n    }\n  ]\n}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1248,
+        80
+      ],
+      "id": "09fc8e46-aca7-48c9-b918-98840940e053",
+      "name": "Invalid Job Reference",
+      "webhookId": "6fb36387-49e2-486c-930c-82218de75107",
+      "credentials": {
+        "slackApi": {
+          "id": "GRRvr3BdTSrJX9oV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1UqsIj9fPPhzSMH7W9lbjA2sHtv0AusjmpIMoJm2IdH8",
+          "mode": "list",
+          "cachedResultName": "Invoice Log - Test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UqsIj9fPPhzSMH7W9lbjA2sHtv0AusjmpIMoJm2IdH8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UqsIj9fPPhzSMH7W9lbjA2sHtv0AusjmpIMoJm2IdH8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Ref": "={{ $('Prepare Comparison Data').item.json.invoice.output.job_reference }}",
+            "Supplier": "={{ $('Prepare Comparison Data').item.json.invoice.output.supplier_name }}",
+            "Invoice #": "={{ $('Prepare Comparison Data').item.json.invoice.output.invoice_number }}",
+            "Estimated": "={{ $json.totalEstimated }}",
+            "Actual": "={{ $json.totalActual }}",
+            "Variance": "={{ $json.totalCostVariance }}",
+            "Variance %": "={{ $json.totalCostVariancePct }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job Ref",
+              "displayName": "Job Ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier",
+              "displayName": "Supplier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Invoice #",
+              "displayName": "Invoice #",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estimated",
+              "displayName": "Estimated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Actual",
+              "displayName": "Actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Variance",
+              "displayName": "Variance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Variance %",
+              "displayName": "Variance %",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2944,
+        -224
+      ],
+      "id": "0a66828c-6795-4553-8121-aff1c4ff2184",
+      "name": "Log Invoice to Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "rSPtssFN84SDpc13",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ca107df-6120-44a5-97ca-e51f4fc3fbf6",
+              "leftValue": "={{ Math.abs($('Calculate Variance').item.json.totalCostVariancePct) }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3168,
+        -32
+      ],
+      "id": "9a269293-25dd-4b36-9155-f0cf70ca9f39",
+      "name": "Variance < 10%?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BU3JXSTMH",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"✅ Invoice Variance Within Threshold\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Supplier invoice successfully matched and verified.*\\n\\nThe difference between the Fergus estimate and the supplier invoice is within the acceptable *10% variance threshold*. No human review is required.\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Job:*\\n{{ $('Prepare Comparison Data').item.json.invoice.output.job_reference }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Estimated Cost:*\\n${{ $('Calculate Variance').item.json.totalEstimated}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Actual Cost:*\\n${{$('Calculate Variance').item.json.totalActual}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Variance:*\\n{{ $('Calculate Variance').item.json.totalCostVariancePct}}%\"\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"🟢 *Status:* Approved — Within Variance Threshold\"\n      }\n    }\n  ]\n}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        3392,
+        -128
+      ],
+      "id": "a02629da-69a2-4187-8430-e5ca5f7c6168",
+      "name": "Variance within threshold",
+      "webhookId": "6fb36387-49e2-486c-930c-82218de75107",
+      "credentials": {
+        "slackApi": {
+          "id": "GRRvr3BdTSrJX9oV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO supplier_invoices (\n    job_number,\n    invoice_number,\n    supplier_name,\n    estimate_total,\n    invoice_total,\n    variance_amount,\n    variance_percent,\n    file_name\n)\nVALUES (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8\n);",
+        "options": {
+          "queryReplacement": "={{$('Prepare Comparison Data').item.json.invoice.output.job_reference}},{{$('Prepare Comparison Data').item.json.invoice.output.invoice_number}},{{$('Prepare Comparison Data').item.json.invoice.output.supplier_name}},{{$json.totalEstimated}},{{$json.totalActual}},{{$json.totalCostVariance}},{{$json.totalCostVariancePct}},{{$('Gmail Trigger').item.binary.attachment_0.fileName}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        -32
+      ],
+      "id": "ffe58838-c07a-4f27-b5d1-48e0cc10ddea",
+      "name": "Log Metadata",
+      "credentials": {
+        "postgres": {
+          "id": "3gMo8YGhZuPFeA3X",
+          "name": "Postgres account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Fergus Job": {
+      "main": [
+        [
+          {
+            "node": "Get Quote Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Quote Details": {
+      "main": [
+        [
+          {
+            "node": "Extract Fergus Material Estimate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Attachment Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attachment Exists?": {
+      "main": [
+        [
+          {
+            "node": "PDF To Text Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Sender Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚠️ No Attachment Included",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Invoice Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Reference Exists?": {
+      "main": [
+        [
+          {
+            "node": "Get Fergus Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Job Reference",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF To Text Extraction": {
+      "main": [
+        [
+          {
+            "node": "AI Invoice Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Fergus Material Estimate": {
+      "main": [
+        [
+          {
+            "node": "Prepare Comparison Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Invoice Extractor": {
+      "main": [
+        [
+          {
+            "node": "Job Reference Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Comparison Data": {
+      "main": [
+        [
+          {
+            "node": "AI - Match Invoice Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 3.7 Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI - Match Invoice Items",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI - Match Invoice Items",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Match Invoice Items": {
+      "main": [
+        [
+          {
+            "node": "Validate Confidence Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Confidence Level": {
+      "main": [
+        [
+          {
+            "node": "Calculate Variance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Variance": {
+      "main": [
+        [
+          {
+            "node": "Log Invoice to Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sender Info": {
+      "main": [
+        [
+          {
+            "node": "Upload Invoice Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Invoice to Sheets": {
+      "main": [
+        []
+      ]
+    },
+    "Variance < 10%?": {
+      "main": [
+        [
+          {
+            "node": "Variance within threshold",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚠️ Cost Variance Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Metadata": {
+      "main": [
+        [
+          {
+            "node": "Variance < 10%?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c2b6815d-8e2f-423d-9e9c-4c4fc5ebfc46",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "55834e3c6d8fc3e1c0282717d1edf6fb6dfa9b30d4832d0757b84133ff9f2c51"
+  },
+  "nodeGroups": [],
+  "id": "4cdOHCW59gHOM5Gn",
+  "tags": []
+}
