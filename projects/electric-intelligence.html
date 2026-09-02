@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Supplier Invoice Reconciliation – AI Automation</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            font-size: 18px;
+            color: #111;
+            background-color: white;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 50px;
+            box-sizing: border-box;
+            line-height: 1.6;
+        }
+
+        a {
+            color: #1a56db;
+            text-decoration: none;
+            border-bottom: 1px solid #cbd5e1;
+            transition: border-color 0.2s;
+        }
+        a:hover {
+            border-bottom-color: #1a56db;
+        }
+
+        img {
+            display: block;
+            width: 100%;
+            height: auto;
+            margin: 25px 0;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+
+        hr {
+            border: none;
+            height: 2px;
+            background-color: #e2e8f0;
+            width: 100%;
+            margin: 30px auto;
+        }
+
+        h1 {
+            font-size: 30px;
+            margin-top: 0;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 23px;
+            font-weight: 600;
+            margin-top: 1.8rem;
+            margin-bottom: 0.8rem;
+        }
+
+        h3 {
+            font-size: 19px;
+            font-weight: 600;
+            margin-top: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        p {
+            line-height: 1.7;
+            margin: 0.9rem 0;
+        }
+
+        .meta {
+            color: #4b5563;
+            font-size: 1rem;
+            letter-spacing: 0.01em;
+            margin-bottom: 1.8rem;
+        }
+
+        ul {
+            margin: 1rem 0 1rem 1.5rem;
+            padding-left: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-card {
+            background: #f8fafc;
+            border-left: 4px solid #94a3b8;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        .alert-card strong {
+            color: #0f172a;
+        }
+
+        .alert-green {
+            border-left-color: #16a34a;
+            background: #f0fdf4;
+        }
+        .alert-yellow {
+            border-left-color: #eab308;
+            background: #fefce8;
+        }
+        .alert-red {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .flow-step {
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .flow-step strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                font-size: 16px;
+                padding: 25px 20px;
+            }
+            h1 {
+                font-size: 25px;
+            }
+            .flow-step, .alert-card {
+                padding: 1rem 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="../index.html">← home</a>
+
+    <hr>
+
+    <h1>Supplier Invoice Reconciliation</h1>
+
+    <p class="meta">
+        n8n · AI/LLM (Gemini) · Gmail · Fergus · Google Drive · Sheets · Slack · Postgres
+    </p>
+
+    <p>
+        <strong>Automated invoice-to-quote matching with variance alerts.</strong>
+        Every incoming supplier invoice is automatically read, compared against the original job quote in Fergus, 
+        line items are intelligently matched, and any cost differences are flagged to the team via Slack. 
+        A complete audit trail is stored in Google Sheets and Postgres for full visibility.
+    </p>
+
+    <hr>
+
+    <h2>How it works — in plain English</h2>
+
+    <p>
+        The system watches a dedicated Gmail inbox for supplier invoices. As soon as a new email with a PDF arrives, 
+        it goes through a fully automated verification and reconciliation process. It extracts key information, 
+        finds the matching job, compares every line item to the original quote, and notifies the team only when something needs attention.
+    </p>
+
+    <img 
+        src="../images/ElectricIntelligence.png" 
+        alt="Main n8n workflow diagram for supplier invoice reconciliation"
+    >
+
+    <hr>
+
+    <h2>Step-by-step workflow</h2>
+
+    <!-- STEP 1 -->
+    <div class="flow-step">
+        <strong>1. Attachment check</strong><br>
+        Checks whether the incoming email actually contains a PDF invoice. 
+        If not, the team gets a Slack alert: <em>"No Attachment Included"</em> and the process stops — 
+        someone needs to follow up manually. If the PDF is present, the flow continues.
+    </div>
+
+    <!-- STEP 2 & 3 -->
+    <div class="flow-step">
+        <strong>2 & 3. In parallel: sender info & file processing</strong><br>
+        While the PDF is being converted into readable text, the system also extracts sender details, 
+        cleans the supplier name, and uploads the original PDF to Google Drive for permanent storage.
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="flow-step">
+        <strong>4. AI invoice extraction</strong><br>
+        Using AI (Gemini via LangChain), the system reads the invoice text and pulls out all important fields: 
+        invoice number, date, supplier name, ABN, job reference, totals, and a detailed list of materials or line items. 
+        It extracts exactly what is written — no guessing or corrections.
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="flow-step">
+        <strong>5. Job reference check</strong><br>
+        If no job reference is found in the invoice, the team is alerted via Slack 
+        (<em>"Job Reference Not Found"</em>) and the process halts for manual review. 
+        If a reference exists, the system moves on to fetch the original quote.
+    </div>
+
+    <!-- STEP 6–8 -->
+    <div class="flow-step">
+        <strong>6–8. Fetch original quote & estimate</strong><br>
+        The system connects to Fergus (the job management platform) to retrieve the job details and the active quote. 
+        It then extracts the "Materials" section — every estimated line item with quantity, unit, unit cost, and total cost.
+    </div>
+
+    <!-- STEP 9–10 -->
+    <div class="flow-step">
+        <strong>9–10. AI line-item matching</strong><br>
+        Both lists — the invoice items and the original estimate — are sent to the AI. 
+        Instead of matching by exact text, the AI uses context to pair items that mean the same thing, even if abbreviations, 
+        brand names, or unit descriptions differ. Each match is assigned a confidence score, and any unmatched items are flagged separately.
+    </div>
+
+    <!-- STEP 11–12 -->
+    <div class="flow-step">
+        <strong>11–12. Confidence check & variance calculation</strong><br>
+        Matches with low confidence (below 0.75) are marked for review. Then, for every matched line item, 
+        the system calculates the variance in quantity, unit price, and total cost — both in absolute terms and as a percentage. 
+        It also rolls up the total estimated cost vs. total actual (invoiced) cost.
+    </div>
+
+    <!-- STEP 13 -->
+    <div class="flow-step">
+        <strong>13. Logging (automatic)</strong><br>
+        Every processed invoice is logged in two places: a Google Sheet (for a quick, human-readable running list) 
+        and a Postgres database table (for structured, queryable records). The log includes job reference, supplier, 
+        invoice number, estimated/actual totals, and the variance summary.
+    </div>
+
+    <!-- STEP 14 -->
+    <div class="flow-step">
+        <strong>14. Final decision – within budget?</strong><br>
+        The system checks the total cost variance percentage against a preset threshold. If the variance is within acceptable limits, 
+        the team gets a green Slack notification: <em>"Invoice Variance Within Threshold"</em>. If it exceeds the threshold, 
+        a <em>"Cost Variance Alert"</em> is sent, requesting manual review before payment.
+    </div>
+
+    <hr>
+
+    <h2>Slack alerts at a glance</h2>
+
+    <div class="alert-card alert-red">
+        <strong>❌ No Attachment Included</strong> — Invoice PDF is missing. Human follow-up required.
+    </div>
+    <div class="alert-card alert-red">
+        <strong>❌ Job Reference Not Found</strong> — Cannot identify the relevant Fergus job. Manual lookup needed.
+    </div>
+    <div class="alert-card alert-green">
+        <strong>✅ Invoice Variance Within Threshold</strong> — Everything checks out. No action needed.
+    </div>
+    <div class="alert-card alert-yellow">
+        <strong>⚠️ Cost Variance Alert</strong> — Invoiced cost differs significantly from the estimate. Review required.
+    </div>
+
+    <hr>
+
+    <h2>Where does the data go?</h2>
+    <ul>
+        <li><strong>Google Drive</strong> — Stores a copy of every processed invoice PDF for easy retrieval.</li>
+        <li><strong>Google Sheets</strong> — Running log with job reference, supplier, invoice number, estimated vs. actual costs, and variance summary.</li>
+        <li><strong>Postgres</strong> — Structured storage of the same summary data in a `supplier_invoices` table for future analysis or integrations.</li>
+    </ul>
+
+    <hr>
+
+    <h2>What this demonstrates</h2>
+    <ul>
+        <li>Automated AI document parsing and data extraction</li>
+        <li>Semantic matching of invoice lines to quote items (not just text matching)</li>
+        <li>Integration with external systems: Gmail, Google Drive, Slack, Fergus, Google Sheets, Postgres</li>
+        <li>Parallel processing and conditional logic for robust error handling</li>
+        <li>Comprehensive logging and audit trail creation</li>
+        <li>Clear, human-friendly notifications for operational teams</li>
+    </ul>
+
+    <hr>
+
+    <p>
+        <a href="../index.html">← back to home</a>
+    </p>
+
+</body>
+</html>
